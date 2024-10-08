@@ -1,10 +1,9 @@
 from django.urls import path
-from .views import TriggerSignalView, TriggerSignalThreadView, AuthorView, BookView,TestView
+from .views import TriggerSignalView, create_my_model, rectangle_view, my_view
 
 urlpatterns = [
-    path("trigger-signal/", TriggerSignalView.as_view(), name="trigger_signal"),
-    path("threading-signal/", TriggerSignalThreadView.as_view(), name="thread_signal"),
-    path("authors/", AuthorView.as_view(), name="create_author"),
-    path("books/", BookView.as_view(), name="create_book"),
-    path("test/", TestView.as_view(), name="test"),
+    path("signal-1/", TriggerSignalView.as_view(), name="trigger_signal"),
+    path("signal-2/", my_view, name="thread_signal"),
+    path('signal-3/', create_my_model, name='create_my_model'),
+    path('rectangle/', rectangle_view, name='rectangle_view'),
 ]

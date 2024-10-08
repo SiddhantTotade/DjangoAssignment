@@ -5,34 +5,25 @@ from django.db import models
 # Create your models here.
 
 
-class Rectangle(models.Model):
-    length = models.IntegerField(null=True, blank=True)
-    width = models.IntegerField(null=True, blank=True)
-
-    def __str__(self):
-        return str(self.length + "  "+self.width)
-
-
-class Author(models.Model):
+class MyModel(models.Model):
     name = models.CharField(max_length=100)
-    book_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return str(self.id)
 
 
-class Book(models.Model):
-    title = models.CharField(max_length=100)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+class Rectangle:
+    def __init__(self, length: int, width: int):
+        self.length = length
+        self.width = width
 
-    def __str__(self):
-        return str(self.id)
+    def __iter__(self):
+        # This method allows the Rectangle instance to be iterable.
+        yield {'length': self.length}
+        yield {'width': self.width}
 
 
-@receiver(post_save, sender=Book)
-def update_author_book_count(sender, instance, created, **kwargs):
+@receiver(post_save, sender=MyModel)
+def my_model_post_save(sender, instance, created, **kwargs):
     if created:
-        # Increment the book count for the author
-        author = instance.author
-        author.book_count += 1
-        author.save()
+        print(f"{instance.name} has been created.")

@@ -3,25 +3,20 @@ import logging
 import threading
 from django.dispatch import Signal, receiver
 
-# Define custom signals
 api_trigger_signal = Signal()
-threading_signal = Signal()
-
-# Create a thread-local storage
-thread_local = threading.local()
-
-# Signal handler that introduces a 5-second delay
+my_signal = Signal()
 
 
 @receiver(api_trigger_signal)
 def log_signal_trigger(sender, **kwargs):
     logging.info("Signal handler started.")
     print("Signal handler started.")
-    time.sleep(5)  # Simulate a blocking operation with a 5-second delay
+    time.sleep(5)
     logging.info("Signal handler finished.")
     print("Signal handler finished.")
 
 
-@receiver(threading_signal)
-def modify_thread_local(sender, **kwargs):
-    thread_local.value = "Modified in Signal"
+@receiver(my_signal)
+def my_signal_handler(sender, **kwargs):
+    print(f"Signal handler called in thread: {
+          threading.current_thread().name}")

@@ -1,64 +1,68 @@
 import logging
+import json
+import threading
+from django.db import transaction
+from .models import MyModel, Rectangle
+from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django_app.signals import api_trigger_signal, threading_signal, thread_local
-from .serializers import BookSerializer, AuthorSerializer
-from rest_framework import status
+from django_app.signals import api_trigger_signal
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+from .signals import my_signal
 
 
 class TriggerSignalView(APIView):
     def post(self, request, *args, **kwargs):
         logging.info("Before signal trigger.")
-        print("Before signal trigger.")  # Debug print
+        print("Before signal trigger.")
 
         api_trigger_signal.send(sender=self.__class__)
 
         logging.info("After signal trigger.")
-        print("After signal trigger.")  # Debug print
+        print("After signal trigger.")
 
         return Response({'message': 'Signal triggered successfully!'}, status=200)
 
 
-class TriggerSignalThreadView(APIView):
-    def post(self, request, *args, **kwargs):
-        logging.info("Before signal trigger.")
-        print("Before signal trigger.")  # Debug print
+@csrf_exempt
+def my_view(request):
+    print(f"View called in thread: {threading.current_thread().name}")
 
-        # Check the initial value of the thread-local variable
-        initial_value = getattr(thread_local, 'value', 'Not modified')
-        logging.info(f"Initial thread-local value: {initial_value}")
-        print(f"Initial thread-local value: {initial_value}")  # Debug print
+    my_signal.send(sender=None)
 
-        # Trigger the signal
-        threading_signal.send(sender=self.__class__)
-
-        # Check the value after triggering the signal
-        final_value = getattr(thread_local, 'value', 'Not modified')
-        logging.info(f"Final thread-local value: {final_value}")
-        print(f"Final thread-local value: {final_value}")  # Debug print
-
-        return Response({'message': 'Signal triggered successfully!'}, status=200)
+    return HttpResponse("Signal sent!")
 
 
-class AuthorView(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = AuthorSerializer(data=request.data)
-        if serializer.is_valid():
-            author = serializer.save()
-            return Response(AuthorSerializer(author).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@csrf_exempt
+def create_my_model(request):
+    if request.method == 'POST':
+        try:
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+                name = data.get("name")
+            else:
+                name = request.POST.get("name")
+
+            if not name:
+                return JsonResponse({'status': 'error', 'message': 'Name field is required.'})
+
+            with transaction.atomic():
+                my_model = MyModel(name=name)
+                my_model.save()
+            return JsonResponse({'status': 'success'})
+
+        except ValueError as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON.'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 
-class BookView(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = BookSerializer(data=request.data)
-        if serializer.is_valid():
-            book = serializer.save()
-            return Response(BookSerializer(book).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+def rectangle_view(request):
+    rect = Rectangle(length=10, width=5)
 
+    dimensions = [dimension for dimension in rect]
 
-class TestView(APIView):
-    def post(self, request):
-        print(request.data)
-        return Response({"msg": "Hello"}, status=status.HTTP_200_OK)
+    return JsonResponse(dimensions, safe=False)
